@@ -10,6 +10,7 @@ target/
 *.iws
 *.iml
 *.ipr
+dm-helper.md
 
 ### Eclipse ###
 .apt_generated
