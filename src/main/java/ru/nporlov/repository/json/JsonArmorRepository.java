@@ -43,7 +43,7 @@ public class JsonArmorRepository implements ArmorRepository {
         return result;
     }
 
-    public Optional<Armor> findById(int id) {
+    public Optional<Armor> findById(Integer id) {
         Path file = dataDir.resolve(id + ".json");
         if (!Files.exists(file)) {
             return Optional.empty();
@@ -54,13 +54,15 @@ public class JsonArmorRepository implements ArmorRepository {
     public Armor save(Armor armor) {
         try {
             if (null == armor.getId()) {
-                armor.setId(idSequence++);
+                armor.setId(++idSequence);
             }
             Path target = dataDir.resolve(armor.getId() + ".json");
             Path temp = dataDir.resolve(armor.getId() + ".json.tmp");
 
             mapper.writeValue(temp.toFile(), armor);
-            Files.move(target, temp, StandardCopyOption.REPLACE_EXISTING);
+            Files.move(temp, target,
+                    StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE);
 
             return armor;
         } catch (IOException e) {
@@ -68,7 +70,7 @@ public class JsonArmorRepository implements ArmorRepository {
         }
     }
 
-    public void deleteById(int id) {
+    public void deleteById(Integer id) {
         try {
             Path file = dataDir.resolve(id + ".json");
             Files.deleteIfExists(file);
@@ -77,7 +79,7 @@ public class JsonArmorRepository implements ArmorRepository {
         }
     }
 
-    public boolean existsById(int id) {
+    public boolean existsById(Integer id) {
         return Files.exists(dataDir.resolve(id + ".json"));
     }
 

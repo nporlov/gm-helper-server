@@ -7,8 +7,8 @@ import java.util.Optional;
 
 public interface ArmorRepository {
     List<Armor> findAll();
-    Optional<Armor> findById(int id);
+    Optional<Armor> findById(Integer id);
     Armor save(Armor armor);
-    void deleteById(int id);
-    boolean existsById(int id);
+    void deleteById(Integer id);
+    boolean existsById(Integer id);
 }
