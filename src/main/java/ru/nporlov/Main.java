@@ -4,7 +4,7 @@ import ru.nporlov.config.DependencyContainer;
 import ru.nporlov.config.ServerConfig;
 
 public class Main {
-    static void main(String[] args) throws Exception {
+    static void main() throws Exception {
         ServerConfig config = new ServerConfig();
         DependencyContainer container = new DependencyContainer(config);
 

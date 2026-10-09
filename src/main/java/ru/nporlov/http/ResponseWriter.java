@@ -1,11 +1,14 @@
 package ru.nporlov.http;
 
 import com.sun.net.httpserver.HttpExchange;
+import ru.nporlov.dto.ApiError;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
+import java.time.Instant;
+import java.util.Map;
 
 public class ResponseWriter {
     private final ObjectMapper mapper;
@@ -29,5 +32,15 @@ public class ResponseWriter {
         finally {
             exchange.close();
         }
+    }
+
+    public void sendError (HttpExchange exchange, int status, String code,
+                           String message, Map<String, String> details) {
+        ApiError error = new ApiError(status, code, message, Instant.now(), details);
+        sendJson(exchange, status, error);
+    }
+
+    public void sendError (HttpExchange exchange, int status, String code, String message) {
+        sendError(exchange, status, code, message, null);
     }
 }

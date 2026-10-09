@@ -2,13 +2,11 @@ package ru.nporlov.config;
 
 import com.sun.net.httpserver.HttpServer;
 import ru.nporlov.http.ArmorHandler;
+import ru.nporlov.http.ErrorHandler;
 import ru.nporlov.http.ResponseWriter;
 import ru.nporlov.repository.ArmorRepository;
 import ru.nporlov.repository.json.JsonArmorRepository;
-import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.SerializationFeature;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -19,13 +17,11 @@ public class DependencyContainer {
     private final ArmorRepository armorRepository;
     private final ResponseWriter responseWriter;
     private final ArmorHandler armorHandler;
+    private final ErrorHandler errorHandler;
     private final HttpServer server;
 
     public DependencyContainer(ServerConfig config) throws  IOException {
-        this.mapper = JsonMapper.builder()
-                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-                .enable(SerializationFeature.INDENT_OUTPUT)
-                .build();
+        this.mapper = ObjectMapperFactory.create();
 
         this.armorRepository = new JsonArmorRepository(
                 config.getDataDir().resolve("armor"), mapper
@@ -33,6 +29,7 @@ public class DependencyContainer {
 
         this.responseWriter = new ResponseWriter(mapper);
         this.armorHandler = new ArmorHandler(armorRepository,  responseWriter);
+        this.errorHandler = new ErrorHandler(armorHandler, responseWriter);
 
         this.server = buildServer(config);
     }
