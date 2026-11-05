@@ -48,7 +48,7 @@ class ArmorHandlerTest {
         repository = new JsonArmorRepository(tempDir.resolve("armor"), mapper);
 
         ResponseWriter writer = new ResponseWriter(mapper);
-        ArmorHandler handler = new ArmorHandler(repository, writer);
+        ArmorHandler handler = new ArmorHandler(repository, writer, mapper);
         ErrorHandler wrapped = new ErrorHandler(handler, writer);
 
         server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
