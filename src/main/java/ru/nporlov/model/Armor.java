@@ -9,13 +9,12 @@ import java.util.Objects;
 public class Armor {
     private Integer id = null;
     private ArmorType type;
-    @JsonProperty ("is-shield")
-    private boolean isShield;
+    private boolean shield;
     private List<SavingThrowName> penalties;
 
-    public Armor(ArmorType type, boolean isShield, List<SavingThrowName> penalties) {
+    public Armor(ArmorType type, boolean shield, List<SavingThrowName> penalties) {
         this.type = type;
-        this.isShield = isShield;
+        this.shield = shield;
         this.penalties = penalties;
     }
 
@@ -23,11 +22,11 @@ public class Armor {
     public Armor(
             @JsonProperty("id") Integer id,
             @JsonProperty("type") ArmorType type,
-            @JsonProperty("is-shield") boolean isShield,
+            @JsonProperty("shield") boolean isShield,
             @JsonProperty("penalties")  List<SavingThrowName> penalties) {
         this.id = id;
         this.type = type;
-        this.isShield = isShield;
+        this.shield = isShield;
         this.penalties = penalties;
     }
     public Armor() {}
@@ -36,7 +35,7 @@ public class Armor {
         return this.id;
     }
     public ArmorType getType () { return this.type; }
-    public boolean isShield () { return this.isShield; }
+    public boolean isShield () { return this.shield; }
     public List<SavingThrowName> getPenalties () { return this.penalties; }
 
 
@@ -51,12 +50,12 @@ public class Armor {
         Armor armor = (Armor) o;
         return Objects.equals(id, armor.id)
                 && Objects.equals(type, armor.type)
-                && Objects.equals(isShield, armor.isShield)
+                && Objects.equals(shield, armor.shield)
                 && Objects.equals(penalties, armor.penalties);
     }
 
     @Override
     public int hashCode () {
-        return Objects.hash(id, type, isShield, penalties);
+        return Objects.hash(id, type, shield, penalties);
     }
 }

@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import ru.nporlov.config.ObjectMapperFactory;
+import ru.nporlov.dto.ApiError;
 import ru.nporlov.model.Armor;
 import ru.nporlov.model.ArmorType;
 import ru.nporlov.model.SavingThrowName;
@@ -23,8 +24,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.Executors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class ArmorHandlerTest {
     @TempDir
@@ -78,6 +78,16 @@ class ArmorHandlerTest {
         return client.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
+    // emulate POST from client
+    private HttpResponse<String> post(String path, String body) throws Exception{
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + path))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+        return client.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
     @Test
     void getArmor_emptyRepository_ReturnsEmptyArray() throws Exception {
         HttpResponse<String> response = get("/armor");
@@ -118,13 +128,13 @@ class ArmorHandlerTest {
     @Test
     void getArmorById_notExisting_returns404 () throws Exception {
         HttpResponse<String> response = get("/armor/999");
-        assertEquals(404, response.statusCode());
+        assertError(response, 404, "NOT_FOUND");
     }
 
     @Test
     void getArmorById_invalidId_returns400() throws Exception {
         HttpResponse<String> response = get("/armor/abc");
-        assertEquals(400, response.statusCode());
+        assertError(response, 400, "VALIDATION_ERROR");
     }
 
     @Test
@@ -134,14 +144,45 @@ class ArmorHandlerTest {
     }
 
     @Test
-    void postArmor_notSupported_returns405() throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl + "/armor"))
-                .POST(HttpRequest.BodyPublishers.noBody())
-                .build();
+    void postArmor_validBody_returns201() throws Exception {
+        String body = """
+                {
+                "type": "LIGHT",
+                "is-shield": false,
+                "penalties": []
+                }
+                """;
+        HttpResponse<String> response = post("/armor/", body);
 
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        assertEquals(201, response.statusCode());
 
-        assertEquals(405, response.statusCode());
+        String location = response.headers().firstValue("Location").orElseThrow();
+        assertTrue(location.startsWith("/armor/"));
+
+        Armor parsed = mapper.readValue(response.body(), Armor.class);
+        assertNotNull(parsed.getId());
+        assertEquals(ArmorType.LIGHT, parsed.getType());
+
+        assertTrue(repository.findById(parsed.getId()).isPresent());
+    }
+
+    @Test
+    void postArmor_emptyBody_returns400() throws Exception {
+        HttpResponse<String> response = post("/armor/", "");
+        assertEquals(400, response.statusCode());
+    }
+
+    @Test
+    void postArmor_malformedJson_returns400() throws Exception {
+        HttpResponse<String> response = post("/armor/", "{not json");
+        assertError(response, 400, "MALFORMED_JSON");
+    }
+
+    private void assertError(HttpResponse<String> response, int expectedStatus, String expectedCode) {
+        assertEquals(expectedStatus, response.statusCode(), "Body: " + response.body());
+        ApiError error = mapper.readValue(response.body(), ApiError.class);
+        assertEquals(expectedStatus, error.getStatus());
+        assertEquals(expectedCode, error.getCode());
+        assertNotNull(error.getMessage());
     }
 }

@@ -44,11 +44,11 @@ public class ArmorHandler implements HttpHandler {
     }
 
     private void handlePost(HttpExchange exchange) throws IOException {
-        String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-        CreateArmorRequest request = mapper.readValue(body, CreateArmorRequest.class);
+        CreateArmorRequest request = readBody(exchange, CreateArmorRequest.class);
         validate(request);
-        Armor toSave = toArmor(request);
-        Armor saved = repository.save(toSave);
+
+        Armor saved = repository.save(toArmor(request));
+        writer.sendJson(exchange, 201, saved, Map.of("Location", "/armor/" + saved.getId()));
     }
 
     private <T> T readBody(HttpExchange exchange, Class<T> type) throws IOException{
