@@ -28,7 +28,7 @@ public class DependencyContainer {
         );
 
         this.responseWriter = new ResponseWriter(mapper);
-        this.armorHandler = new ArmorHandler(armorRepository,  responseWriter);
+        this.armorHandler = new ArmorHandler(armorRepository,  responseWriter, mapper);
         this.errorHandler = new ErrorHandler(armorHandler, responseWriter);
 
         this.server = buildServer(config);
