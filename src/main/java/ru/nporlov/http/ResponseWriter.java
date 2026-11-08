@@ -50,4 +50,14 @@ public class ResponseWriter {
     public void sendError (HttpExchange exchange, int status, String code, String message) {
         sendError(exchange, status, code, message, null);
     }
+
+    public void sendNoContent(HttpExchange exchange) {
+        try {
+            exchange.sendResponseHeaders(204, -1);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } finally {
+            exchange.close();
+        }
+    }
 }

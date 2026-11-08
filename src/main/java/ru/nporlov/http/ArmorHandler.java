@@ -33,14 +33,41 @@ public class ArmorHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
         String method = exchange.getRequestMethod();
         String path = exchange.getRequestURI().getPath();
+        String rest = path.substring(CONTEXT_PATH.length());
+
+        boolean isCollection = rest.isEmpty() || rest.equals("/");
+        boolean isSingle = rest.startsWith("/") && rest.length() > 1;
 
         switch (method) {
-            case "GET" -> handleGet(exchange, path);
-            case "POST" -> handlePost(exchange);
-            default -> writer.sendError(exchange, 405, "METHOD_NOT_SUPPORTED",
-                        "Method" + method + " not supported");
+            case "GET" -> {
+                if (isCollection) handleGetList(exchange);
+                else if (isSingle) handleGetById(exchange, rest.substring(1));
+                else sendNotFound(exchange, path);
+            }
+            case "POST" -> {
+                if (isCollection) handlePost(exchange);
+                else sendMethodNotAllowed(exchange, method);
+            }
+            case "PUT" -> {
+                if (isSingle) handlePut(exchange, rest.substring(1));
+                else sendMethodNotAllowed(exchange, method);
+            }
+            case "DELETE" -> {
+                if (isSingle) handleDelete(exchange, rest.substring(1));
+                else sendMethodNotAllowed(exchange, method);
+            }
+            default -> sendMethodNotAllowed(exchange, method);
         }
 
+    }
+
+    private void sendMethodNotAllowed (HttpExchange exchange, String method) {
+        writer.sendError(exchange, 405, "METHOD_NOT_SUPPORTED",
+                "Method" + method + " not supported");
+    }
+
+    private void sendNotFound (HttpExchange exchange, String path) {
+        writer.sendError(exchange, 404, "NOT_FOUND", "Invalid path: " + path);
     }
 
     private void handlePost(HttpExchange exchange) throws IOException {
@@ -85,34 +112,13 @@ public class ArmorHandler implements HttpHandler {
         return new Armor(request.getType(), request.isShield(), request.getPenalties());
     }
 
-    private void handleGet(HttpExchange exchange, String path) {
-        String rest = path.substring(CONTEXT_PATH.length());
-
-        if (rest.isEmpty() || rest.equals("/")) {
-            handleGetList(exchange);
-            return;
-        }
-
-        if (rest.startsWith("/")) {
-            handleGetById(exchange, rest);
-            return;
-        }
-        writer.sendError(exchange, 404, "NOT_FOUND", "Unknown path: " + path);
-    }
-
     private void handleGetList(HttpExchange exchange) {
         writer.sendJson(exchange, 200, repository.findAll());
     }
 
     private void handleGetById(HttpExchange exchange, String rest) {
         String idPart = rest.substring(1);
-        int id;
-        try {
-            id = Integer.parseInt(idPart);
-        }
-        catch (NumberFormatException e) {
-            throw new ValidationException("Invalid id: " + idPart);
-        }
+        int id = parseId(idPart);
 
         Armor foundArmor = repository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Armor not found: " + id));
@@ -120,4 +126,37 @@ public class ArmorHandler implements HttpHandler {
         writer.sendJson(exchange, 200, foundArmor);
     }
 
+    private int parseId(String idPart) {
+        try {
+            return Integer.parseInt(idPart);
+        } catch (NumberFormatException nfe) {
+            throw new ValidationException("Invalid id: " + idPart);
+        }
+    }
+
+    private void handlePut (HttpExchange exchange, String idPart) throws IOException{
+        int id = parseId(idPart);
+        CreateArmorRequest request = readBody(exchange, CreateArmorRequest.class);
+        validate(request);
+
+        if(!repository.existsById(id)) {
+            throw new NotFoundException("Armor not found: " + id);
+        }
+
+        Armor armor = toArmor(request);
+        armor.setId(id);
+        Armor updated = repository.save(armor);
+        writer.sendJson(exchange, 200, updated);
+    }
+
+    private void handleDelete (HttpExchange exchange, String idPart) {
+        int id = parseId(idPart);
+
+        if(!repository.existsById(id)) {
+            throw new NotFoundException("Armor not found: " + id);
+        }
+
+        repository.deleteById(id);
+        writer.sendNoContent(exchange);
+    }
 }
