@@ -17,10 +17,17 @@ public class ResponseWriter {
         this.mapper = mapper;
     }
 
-    void sendJson (HttpExchange exchange, int status, Object body) {
+    void sendJson(HttpExchange exchange, int status, Object body) {
+        sendJson(exchange, status, body, null);
+    }
+
+    void sendJson (HttpExchange exchange, int status, Object body, Map<String,String> headers) {
         try {
             byte[] bytes = mapper.writeValueAsBytes(body);
             exchange.getResponseHeaders().set("Content-Type",  "application/json; charset=utf-8");
+            if (headers != null) {
+                headers.forEach((key, value) -> exchange.getResponseHeaders().set(key, value));
+            }
             exchange.sendResponseHeaders(status, bytes.length);
             try (OutputStream os = exchange.getResponseBody()) {
                 os.write(bytes);
@@ -42,5 +49,15 @@ public class ResponseWriter {
 
     public void sendError (HttpExchange exchange, int status, String code, String message) {
         sendError(exchange, status, code, message, null);
+    }
+
+    public void sendNoContent(HttpExchange exchange) {
+        try {
+            exchange.sendResponseHeaders(204, -1);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } finally {
+            exchange.close();
+        }
     }
 }
